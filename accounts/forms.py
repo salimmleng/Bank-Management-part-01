@@ -21,7 +21,7 @@ class UserRegistrationForm(UserCreationForm):
 
     # form save
     def save(self,commit= True):
-        our_user = super().save(commit=False) # data base e ekhon save korbo na
+        our_user = super().save(commit=False) #super ke call korle usercreation form er instructor ke call kora holo # data base e ekhon save korbo na
         if commit == True:
             our_user.save() # user model e data save korlam
             account_type = self.cleaned_data.get('account_type')
