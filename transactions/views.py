@@ -18,7 +18,7 @@ from transactions.forms import (
 from django.shortcuts import get_object_or_404
 from transactions.models import Transaction
 from django.db.models import Sum
-import datetime
+from datetime import datetime
 
 
 
@@ -168,7 +168,7 @@ class PayLoanView(LoginRequiredMixin, View):
                 loan.loan_approved = True
                 loan.transaction_type = LOAN_PAID
                 loan.save()
-                return redirect('transactions:loan_list')
+                return redirect('loan_list')
             else:
                 messages.error(
             self.request,
