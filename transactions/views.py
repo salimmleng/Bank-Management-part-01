@@ -10,6 +10,9 @@ from django.views.generic import CreateView, ListView
 from transactions.models import Transaction
 from transactions.constants import DEPOSIT, WITHDRAWAL,LOAN, LOAN_PAID
 from django.views import View
+from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMessage
 from transactions.forms import (
     DepositForm,
     WithdrawForm,
@@ -22,6 +25,14 @@ from datetime import datetime
 
 
 
+def send_transaction_email(user, amount, subject, template):
+        message = render_to_string(template, {
+            'user' : user,
+            'amount' : amount,
+        })
+        send_email = EmailMultiAlternatives(subject, '', to=[user.email])
+        send_email.attach_alternative(message, "text/html")
+        send_email.send()
 
 class TransactionCreateMixin(LoginRequiredMixin, CreateView):
     template_name = 'transactions/transaction_form.html'
@@ -30,14 +41,20 @@ class TransactionCreateMixin(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('transaction_report')
 
     def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs.update({
-            'account': self.request.user.account
+        kwargs = super().get_form_kwargs()  #getting the default keyword arguments from the superclass
+
+        kwargs.update({     # it updates this dictionary with additional custom data.
+            'account': self.request.user.account   # Update the form keyword arguments with the user's account
         })
         return kwargs
+    
+        # question : account key ta ki kwargs er moddehe exist kore
+        # naki ami jekono key and value make korte parbo
 
     def get_context_data(self, **kwargs):
+         # Get the default context data from the superclass
         context = super().get_context_data(**kwargs) # template e context data pass kora
+        # Update the context with additional data
         context.update({
             'title': self.title
         })
@@ -59,16 +76,18 @@ class DepositMoneyView(TransactionCreateMixin):
         account.balance += amount # amount = 200, tar ager balance = 0 taka new balance = 0+200 = 200
         account.save(
             update_fields=[
-                'balance'
+                'balance',
             ]
         )
 
         messages.success(
+
             self.request,
             f'{"{:,.2f}".format(float(amount))}$ was deposited to your account successfully'
         )
-
+        send_transaction_email(self.request.user, amount, "Deposite Message", "transactions/deposite_email.html")
         return super().form_valid(form)
+    
     
 
 
@@ -92,7 +111,7 @@ class WithdrawMoneyView(TransactionCreateMixin):
             self.request,
             f'Successfully withdrawn {"{:,.2f}".format(float(amount))}$ from your account'
         )
-
+        send_transaction_email(self.request.user, amount, "Withdrawl Message", "transactions/withdrawl_email.html")
         return super().form_valid(form)
 
 class LoanRequestView(TransactionCreateMixin):
@@ -113,6 +132,7 @@ class LoanRequestView(TransactionCreateMixin):
             self.request,
             f'Loan request for {"{:,.2f}".format(float(amount))}$ submitted successfully'
         )
+        send_transaction_email(self.request.user, amount, "Loan request Message", "transactions/loan_email.html")
 
         return super().form_valid(form)
     
@@ -154,6 +174,7 @@ class TransactionReportView(LoginRequiredMixin, ListView):
 
 class PayLoanView(LoginRequiredMixin, View):
     def get(self, request, loan_id):
+        # here loan holo transaction object
         loan = get_object_or_404(Transaction, id=loan_id)
         print(loan)
         if loan.loan_approve:
@@ -165,7 +186,6 @@ class PayLoanView(LoginRequiredMixin, View):
                 user_account.balance -= loan.amount
                 loan.balance_after_transaction = user_account.balance
                 user_account.save()
-                loan.loan_approved = True
                 loan.transaction_type = LOAN_PAID
                 loan.save()
                 return redirect('loan_list')
