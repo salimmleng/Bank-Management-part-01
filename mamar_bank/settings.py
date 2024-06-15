@@ -38,6 +38,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+CSRF_TRUSTED_ORIGINS = ['https://mamar-bank-3s3e.onrender.com']
+
 
 # Application definition
 
