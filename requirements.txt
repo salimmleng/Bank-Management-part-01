@@ -12,6 +12,7 @@ cryptography
 Django
 django-crispy-forms
 django-environ
+dj-database-url
 folium
 h11
 h2
